@@ -36,6 +36,9 @@ COPY --from=deps /app/.venv /app/.venv
 COPY --chown=neetai:neetai packages/ packages/
 COPY --chown=neetai:neetai adapters/ adapters/
 COPY --chown=neetai:neetai apps/api/ apps/api/
+COPY --chown=neetai:neetai migrations/ migrations/
+COPY --chown=neetai:neetai infra/data/ infra/data/
+COPY --chown=neetai:neetai scripts/ scripts/
 
 USER neetai
 ENV PATH="/app/.venv/bin:$PATH" \
@@ -45,4 +48,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD curl -fsS "http://127.0.0.1:${PORT:-8000}/" || exit 1
 
-CMD ["sh", "-c", "uvicorn neetai_api.main:create_app --factory --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "apps/api/docker-entrypoint.sh"]

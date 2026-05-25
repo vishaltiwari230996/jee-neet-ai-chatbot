@@ -608,6 +608,7 @@ name = "neetai-api"
 version = "0.1.0"
 source = { editable = "apps/api" }
 dependencies = [
+    { name = "alembic" },
     { name = "fastapi" },
     { name = "google-auth" },
     { name = "httpx" },
@@ -630,6 +631,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "alembic", specifier = ">=1.18.4" },
     { name = "fastapi", specifier = ">=0.115" },
     { name = "google-auth", specifier = ">=2.53.0" },
     { name = "httpx", specifier = ">=0.28" },
