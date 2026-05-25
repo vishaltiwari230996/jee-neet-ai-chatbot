@@ -54,6 +54,8 @@ Thumbs.db
 # Local data
 .local/
 data/
+!infra/data/
+!infra/data/**
 postgres-data/
 redis-data/
 minio-data/

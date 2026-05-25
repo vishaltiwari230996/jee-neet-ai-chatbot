@@ -1,0 +1,19 @@
+question_id,text,category,exam_targets,audience,answer_type,options,maps_to,priority,is_required
+JEE_MOCK_SCORE,"What is your current average score range in JEE mock tests?",academic_diagnosis,jee_main|jee_advanced|jee_main_advanced,class_11|class_12|dropper,short_text,,mock_score_range,100,true
+JEE_STRONG_SUBJECT,"Which subject are you most confident in right now?",academic_diagnosis,jee_main|jee_advanced|jee_main_advanced,class_11|class_12|dropper,single_choice,physics|chemistry|mathematics,strong_subject,95,true
+JEE_WEAK_SUBJECT,"Which subject consistently lowers your overall score?",academic_diagnosis,jee_main|jee_advanced|jee_main_advanced,class_11|class_12|dropper,single_choice,physics|chemistry|mathematics,weak_subject,94,true
+JEE_WEAK_TOPICS,"Which chapters or topics do you consistently struggle with despite multiple revisions?",academic_diagnosis,jee_main|jee_advanced|jee_main_advanced,class_11|class_12|dropper,short_text,,main_problem,90,true
+JEE_MISTAKE_REASON,"What is usually the biggest reason behind your low mock scores?",mistake_pattern,jee_main|jee_advanced|jee_main_advanced,class_11|class_12|dropper,single_choice,lack of concepts|silly mistakes|panic|time management|negative marking,mistake_pattern,85,true
+JEE_FOCUS_HOURS,"How many hours do you actually study with full focus daily?",behaviour,jee_main|jee_advanced|jee_main_advanced,class_11|class_12|dropper,number,,study_hours_per_day,80,true
+JEE_REVISION_HABIT,"How regularly do you revise completed chapters?",behaviour,jee_main|jee_advanced|jee_main_advanced,class_11|class_12|dropper,single_choice,daily|every few days|before tests only|rarely,revision_habit,75,true
+JEE_EMOTIONAL_STATE,"What worries you the most currently in your JEE preparation?",emotional,jee_main|jee_advanced|jee_main_advanced,class_11|class_12|dropper,single_choice,low mock scores|backlog|parent pressure|competition|consistency|fear of failure,emotional_state,70,true
+JEE_LEARNING_STYLE,"What kind of explanation helps you understand fastest?",learning_style,jee_main|jee_advanced|jee_main_advanced,class_11|class_12|dropper,single_choice,basic_explanation|examples|tricks|step_by_step|visual,learning_style,65,true
+NEET_MOCK_SCORE,"What is your current average NEET mock score range?",academic_diagnosis,neet,class_11|class_12|dropper,short_text,,mock_score_range,100,true
+NEET_STRONG_SUBJECT,"Which subject do you feel most confident in right now?",academic_diagnosis,neet,class_11|class_12|dropper,single_choice,physics|chemistry|biology,strong_subject,95,true
+NEET_WEAK_SUBJECT,"Which subject consistently pulls your overall score down?",academic_diagnosis,neet,class_11|class_12|dropper,single_choice,physics|chemistry|biology,weak_subject,94,true
+NEET_WEAK_TOPICS,"Which chapters or topics are still weak or incomplete in each subject?",academic_diagnosis,neet,class_11|class_12|dropper,short_text,,main_problem,90,true
+NEET_MISTAKE_REASON,"What is usually the biggest reason behind your low mock scores?",mistake_pattern,neet,class_11|class_12|dropper,single_choice,lack of concepts|silly mistakes|panic|time management|negative marking,mistake_pattern,85,true
+NEET_FOCUS_HOURS,"How many hours of focused study do you actually complete daily?",behaviour,neet,class_11|class_12|dropper,number,,study_hours_per_day,80,true
+NEET_REVISION_HABIT,"Do you revise regularly, or only before tests and exams?",behaviour,neet,class_11|class_12|dropper,single_choice,daily|every few days|before tests only|rarely,revision_habit,75,true
+NEET_EMOTIONAL_STATE,"What is your biggest fear regarding the NEET exam?",emotional,neet,class_11|class_12|dropper,single_choice,low mock scores|backlog|parent pressure|competition|consistency|fear of failure,emotional_state,70,true
+NEET_LEARNING_STYLE,"What kind of explanation helps you understand fastest?",learning_style,neet,class_11|class_12|dropper,single_choice,basic_explanation|examples|tricks|step_by_step|visual,learning_style,65,true
