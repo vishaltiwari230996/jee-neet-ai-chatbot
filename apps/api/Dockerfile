@@ -38,7 +38,8 @@ COPY --chown=neetai:neetai adapters/ adapters/
 COPY --chown=neetai:neetai apps/api/ apps/api/
 
 USER neetai
-ENV PATH="/app/.venv/bin:$PATH"
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH="/app/apps/api/src:/app/packages/core/src:/app/packages/ports/src:/app/packages/profiling/src:/app/packages/question_bank/src:/app/packages/doubt_classifier/src:/app/packages/retrieval/src:/app/packages/orchestrator/src:/app/packages/safety/src:/app/packages/feedback/src:/app/packages/analytics/src:/app/adapters/llm_openrouter/src:/app/adapters/llm_anthropic/src:/app/adapters/llm_fake/src:/app/adapters/db_fake/src:/app/adapters/db_postgres/src"
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
