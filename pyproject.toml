@@ -1,0 +1,197 @@
+[project]
+name = "neetai"
+version = "0.1.0"
+description = "Personalized JEE/NEET AI tutor — modular monolith"
+requires-python = ">=3.12,<3.13"
+readme = "README.md"
+
+[tool.uv.workspace]
+members = [
+    "apps/api",
+    "packages/core",
+    "packages/ports",
+    "packages/profiling",
+    "packages/question_bank",
+    "packages/doubt_classifier",
+    "packages/retrieval",
+    "packages/orchestrator",
+    "packages/safety",
+    "packages/feedback",
+    "packages/analytics",
+    "adapters/llm_openrouter",
+    "adapters/llm_anthropic",
+    "adapters/llm_fake",
+    "adapters/db_fake",
+    "adapters/db_postgres",
+]
+
+[tool.uv.sources]
+neetai-core = { workspace = true }
+neetai-ports = { workspace = true }
+neetai-profiling = { workspace = true }
+neetai-question-bank = { workspace = true }
+neetai-doubt-classifier = { workspace = true }
+neetai-retrieval = { workspace = true }
+neetai-orchestrator = { workspace = true }
+neetai-safety = { workspace = true }
+neetai-feedback = { workspace = true }
+neetai-analytics = { workspace = true }
+neetai-llm-openrouter = { workspace = true }
+neetai-llm-anthropic = { workspace = true }
+neetai-llm-fake = { workspace = true }
+neetai-db-fake = { workspace = true }
+neetai-db-postgres = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+    "import-linter>=2.1",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "hypothesis>=6.122",
+    "httpx>=0.28",
+    "asgi-lifespan>=2.1",
+    "pre-commit>=4.0",
+]
+
+# ---------------------------------------------------------------------------
+# Ruff — formatter + linter (replaces black, isort, flake8, pyupgrade, etc.)
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = [".venv", "migrations/versions"]
+
+[tool.ruff.lint]
+# Conservative, opinionated set. Easy to read, hard to misuse.
+# Notes:
+#   * TCH (TC001/2/3) is omitted: pydantic uses type hints at runtime for
+#     validation, so the "move into TYPE_CHECKING block" advice produces
+#     false positives across every domain model and Protocol in the workspace.
+#   * N818 is omitted: domain errors (SafetyViolation) read better without
+#     a forced `Error` suffix; we still use the suffix for adapter-level
+#     errors where it adds clarity.
+select = [
+    "E", "W",       # pycodestyle
+    "F",            # pyflakes
+    "I",            # isort
+    "B",            # flake8-bugbear
+    "C4",           # comprehensions
+    "UP",           # pyupgrade
+    "SIM",          # simplify
+    "RET",          # return statements
+    "ARG",          # unused arguments
+    "PTH",          # use pathlib
+    "PL",           # pylint subset
+    "RUF",          # ruff-specific
+    "ASYNC",        # async pitfalls
+    "S",            # bandit security
+]
+ignore = [
+    "PLR0913",      # too many args — common in DI
+    "S101",         # asserts are fine in tests
+    "PLR2004",      # magic values — too noisy for now
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S", "PLR", "ARG"]
+"**/conftest.py" = ["S", "PLR", "ARG"]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "neetai_core",
+    "neetai_ports",
+    "neetai_profiling",
+    "neetai_question_bank",
+    "neetai_doubt_classifier",
+    "neetai_retrieval",
+    "neetai_orchestrator",
+    "neetai_safety",
+    "neetai_feedback",
+    "neetai_analytics",
+    "neetai_api",
+    "neetai_llm_openrouter",
+    "neetai_llm_anthropic",
+    "neetai_llm_fake",
+    "neetai_db_postgres",
+    "neetai_db_fake",
+]
+
+# ---------------------------------------------------------------------------
+# mypy — strict typing
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_any_unimported = true
+no_implicit_reexport = true
+show_error_codes = true
+pretty = true
+plugins = ["pydantic.mypy"]
+# Workspace uses uv's src-layout across many packages. Each member has its
+# own src/ directory; we list them so mypy doesn't double-import modules
+# under both `apps.api.src.neetai_api` and `neetai_api`.
+mypy_path = [
+    "apps/api/src",
+    "packages/core/src",
+    "packages/ports/src",
+    "packages/profiling/src",
+    "packages/question_bank/src",
+    "packages/doubt_classifier/src",
+    "packages/retrieval/src",
+    "packages/orchestrator/src",
+    "packages/safety/src",
+    "packages/feedback/src",
+    "packages/analytics/src",
+    "adapters/llm_openrouter/src",
+    "adapters/llm_anthropic/src",
+    "adapters/llm_fake/src",
+    "adapters/db_postgres/src",
+    "adapters/db_fake/src",
+]
+explicit_package_bases = true
+namespace_packages = true
+exclude = [
+    "^.+/build/",
+    "^migrations/versions/",
+]
+
+[[tool.mypy.overrides]]
+module = ["tests.*", "*.tests.*"]
+disallow_untyped_decorators = false
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra --strict-markers --strict-config --import-mode=importlib"
+testpaths = ["apps", "packages", "adapters"]
+asyncio_mode = "auto"
+markers = [
+    "integration: hits real services (postgres/redis); skip in unit runs",
+    "llm: makes a real LLM call; opt-in only",
+    "slow: long-running tests",
+]
+
+# ---------------------------------------------------------------------------
+# coverage
+# ---------------------------------------------------------------------------
+[tool.coverage.run]
+branch = true
+source = ["apps", "packages", "adapters"]
+omit = ["**/tests/**", "**/__init__.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+    "@overload",
+]

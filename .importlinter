@@ -1,0 +1,114 @@
+[importlinter]
+root_packages =
+    neetai_core
+    neetai_ports
+    neetai_profiling
+    neetai_question_bank
+    neetai_doubt_classifier
+    neetai_retrieval
+    neetai_orchestrator
+    neetai_safety
+    neetai_feedback
+    neetai_analytics
+    neetai_api
+    neetai_llm_openrouter
+    neetai_llm_anthropic
+    neetai_llm_fake
+    neetai_db_postgres
+    neetai_db_fake
+include_external_packages = True
+
+# ---------------------------------------------------------------------------
+# Contract 1: Domain packages must NEVER depend on adapters or the API app.
+# This is the heart of "ports & adapters".
+# ---------------------------------------------------------------------------
+[importlinter:contract:domain-purity]
+name = Domain packages must not depend on adapters or transport layer
+type = forbidden
+source_modules =
+    neetai_profiling
+    neetai_question_bank
+    neetai_doubt_classifier
+    neetai_retrieval
+    neetai_orchestrator
+    neetai_safety
+    neetai_feedback
+    neetai_analytics
+forbidden_modules =
+    neetai_api
+    neetai_llm_openrouter
+    neetai_llm_anthropic
+    neetai_llm_fake
+    neetai_db_postgres
+    neetai_db_fake
+    fastapi
+    sqlalchemy
+    psycopg
+    redis
+    httpx
+
+# ---------------------------------------------------------------------------
+# Contract 2: Ports must depend only on core. They define interfaces — they
+# cannot reach into other domain packages.
+# ---------------------------------------------------------------------------
+[importlinter:contract:ports-purity]
+name = Ports may depend only on core
+type = forbidden
+source_modules =
+    neetai_ports
+forbidden_modules =
+    neetai_profiling
+    neetai_question_bank
+    neetai_doubt_classifier
+    neetai_retrieval
+    neetai_orchestrator
+    neetai_safety
+    neetai_feedback
+    neetai_analytics
+    neetai_api
+    neetai_llm_openrouter
+    neetai_llm_anthropic
+    neetai_llm_fake
+
+# ---------------------------------------------------------------------------
+# Contract 3: Adapters depend on ports & core, never on other adapters
+# or domain packages. They are leaves of the dependency graph.
+# ---------------------------------------------------------------------------
+[importlinter:contract:adapter-isolation]
+name = Adapters cannot depend on domain packages or other adapters
+type = forbidden
+source_modules =
+    neetai_llm_openrouter
+    neetai_llm_anthropic
+    neetai_llm_fake
+    neetai_db_postgres
+    neetai_db_fake
+forbidden_modules =
+    neetai_profiling
+    neetai_question_bank
+    neetai_doubt_classifier
+    neetai_retrieval
+    neetai_orchestrator
+    neetai_safety
+    neetai_feedback
+    neetai_analytics
+    neetai_api
+
+# ---------------------------------------------------------------------------
+# Contract 4: Layered architecture inside the API app — routers depend on
+# orchestrator, never the other way round.
+# ---------------------------------------------------------------------------
+[importlinter:contract:api-is-thin]
+name = The API app is a thin transport layer, not a domain
+type = forbidden
+source_modules =
+    neetai_profiling
+    neetai_question_bank
+    neetai_doubt_classifier
+    neetai_retrieval
+    neetai_orchestrator
+    neetai_safety
+    neetai_feedback
+    neetai_analytics
+forbidden_modules =
+    neetai_api

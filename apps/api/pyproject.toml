@@ -1,0 +1,32 @@
+[project]
+name = "neetai-api"
+version = "0.1.0"
+description = "FastAPI transport layer. Thin: routing + DI wiring, no business logic."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "neetai-core",
+    "neetai-ports",
+    "neetai-profiling",
+    "neetai-question-bank",
+    "neetai-orchestrator",
+    "neetai-llm-openrouter",
+    "neetai-llm-anthropic",
+    "neetai-llm-fake",
+    "neetai-db-fake",
+    "neetai-db-postgres",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "structlog>=24.4",
+    "httpx>=0.28",
+    "google-auth>=2.53.0",
+    "requests>=2.34.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/neetai_api"]

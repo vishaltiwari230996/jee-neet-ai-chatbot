@@ -1,0 +1,13 @@
+[project]
+name = "neetai-doubt-classifier"
+version = "0.1.0"
+description = "Doubt-type intent classification (rules + cheap LLM, Phase 3)."
+requires-python = ">=3.12,<3.13"
+dependencies = ["neetai-core", "neetai-ports"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/neetai_doubt_classifier"]

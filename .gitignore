@@ -1,0 +1,76 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.python-version
+*.egg-info/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.tox/
+.nox/
+
+# uv
+.uv-cache/
+
+# Node
+node_modules/
+.next/
+.turbo/
+dist/
+build/
+.pnpm-store/
+
+# Env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# OS
+Thumbs.db
+
+# Local data
+.local/
+data/
+postgres-data/
+redis-data/
+minio-data/
+
+# Secrets
+secrets/
+*.pem
+*.key
+
+# OpenTelemetry / trace dumps
+otel-dumps/
+
+# Generated
+generated/
+*.generated.*
+
+# Test artefacts
+test-results/
+playwright-report/
+playwright/.cache/

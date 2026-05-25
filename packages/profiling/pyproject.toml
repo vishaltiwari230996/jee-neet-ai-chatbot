@@ -1,0 +1,17 @@
+[project]
+name = "neetai-profiling"
+version = "0.1.0"
+description = "Student profile construction + archetype classification (Phase 1)."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "neetai-core",
+    "neetai-ports",
+    "neetai-question-bank",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/neetai_profiling"]

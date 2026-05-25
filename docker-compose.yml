@@ -1,0 +1,76 @@
+# Local dev stack. `make dev` brings this up.
+#
+# What's here today (Phase 0):
+#   postgres + pgvector  — primary store, ready for migrations in Phase 1
+#   redis                — cache + queue + rate limit
+#   api                  — the FastAPI app
+#
+# Added in later phases:
+#   langfuse        — Phase 3 (LLM tracing)
+#   minio           — Phase 4 (S3-compatible object storage for corpus)
+#   web / admin     — Phase 2 / Phase 6
+
+name: neetai
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: neetai
+      POSTGRES_PASSWORD: neetai
+      POSTGRES_DB: neetai
+    # Host port 55432 (not 5432) so devs who already run a local Postgres
+    # on the default port don't collide. Container port is unchanged.
+    ports:
+      - "55432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/docker/postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U neetai -d neetai"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "56379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NEETAI_ENV: local
+      NEETAI_LOG_FORMAT: text
+      NEETAI_DATABASE_URL: postgresql+psycopg://neetai:neetai@postgres:5432/neetai
+      NEETAI_REDIS_URL: redis://redis:6379/0
+      NEETAI_LLM_PROVIDER: ${NEETAI_LLM_PROVIDER:-fake}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+    ports:
+      - "8000:8000"
+    # Compose profile so `docker compose up` (without args) brings up only
+    # databases by default; the api is opt-in via `make dev-api`.
+    profiles:
+      - api
+
+volumes:
+  postgres-data:
+  redis-data:

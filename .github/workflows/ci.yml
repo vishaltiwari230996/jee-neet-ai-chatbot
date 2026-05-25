@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  UV_VERSION: "0.5.21"
+  PYTHONDONTWRITEBYTECODE: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+jobs:
+  # -------------------------------------------------------------------------
+  # Fast static analysis. Fails the PR in <60s when style/types are wrong.
+  # -------------------------------------------------------------------------
+  static:
+    name: Lint / Types / Architecture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Sync workspace
+        run: uv sync --all-packages --all-extras
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: mypy
+        run: make type
+
+      - name: import-linter
+        run: uv run lint-imports
+
+  # -------------------------------------------------------------------------
+  # Unit tests. No integration, no LLM calls. Hermetic.
+  # -------------------------------------------------------------------------
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Sync workspace
+        run: uv sync --all-packages --all-extras
+
+      - name: Run pytest
+        run: uv run pytest -m "not integration and not llm" --cov --cov-report=xml
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ github.sha }}
+          path: coverage.xml
+          if-no-files-found: ignore
+          retention-days: 7

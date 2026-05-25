@@ -1,0 +1,13 @@
+[project]
+name = "neetai-analytics"
+version = "0.1.0"
+description = "Event tracking + admin dashboard queries (Phase 6)."
+requires-python = ">=3.12,<3.13"
+dependencies = ["neetai-core", "neetai-ports"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/neetai_analytics"]

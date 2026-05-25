@@ -1,0 +1,16 @@
+{
+  "name": "neetai-monorepo-js",
+  "private": true,
+  "description": "JS/TS side of the NeetAI monorepo. The Python side lives in apps/api and packages/.",
+  "scripts": {
+    "dev:web": "pnpm --filter @neetai/web dev",
+    "build:web": "pnpm --filter @neetai/web build",
+    "lint:web": "pnpm --filter @neetai/web lint",
+    "typecheck:web": "pnpm --filter @neetai/web typecheck",
+    "gen:api": "pnpm --filter @neetai/web gen:api"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  }
+}

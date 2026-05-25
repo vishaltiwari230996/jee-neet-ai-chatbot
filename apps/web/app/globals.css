@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0b0d10;
+  --color-bg-elevated: #14181d;
+  --color-border: #232a31;
+  --color-fg: #e7ecf0;
+  --color-fg-muted: #8b96a3;
+  --color-brand: #6f8cff;
+  --color-brand-strong: #4c6ef5;
+  --color-success: #22c55e;
+  --color-danger: #f87171;
+
+  --font-display: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    "Helvetica Neue", Arial, sans-serif;
+
+  --radius-card: 16px;
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Small utility — focus ring used by every interactive primitive. */
+.focus-ring {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.focus-ring:focus-visible {
+  outline-color: var(--color-brand);
+}
+
+.brand-switcher {
+  position: relative;
+  display: inline-grid;
+  min-width: 4.8rem;
+  height: 1.4rem;
+  overflow: hidden;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.brand-switcher__item {
+  grid-area: 1 / 1;
+  background: linear-gradient(90deg, var(--color-fg), var(--color-brand));
+  background-clip: text;
+  color: transparent;
+  opacity: 0;
+  transform: translateY(0.55rem);
+  animation: brand-switch 3.2s ease-in-out infinite;
+  white-space: nowrap;
+}
+
+.brand-switcher__item--neet {
+  animation-delay: 1.6s;
+}
+
+@keyframes brand-switch {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translateY(0.55rem);
+  }
+
+  10%,
+  45% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  55% {
+    opacity: 0;
+    transform: translateY(-0.55rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-switcher__item {
+    animation: none;
+  }
+
+  .brand-switcher__item--jee {
+    opacity: 1;
+    transform: none;
+  }
+}
