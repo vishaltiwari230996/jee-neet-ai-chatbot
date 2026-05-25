@@ -33,7 +33,7 @@ class SessionFactory:
 
     def __init__(self, config: DatabaseConfig) -> None:
         self._engine = create_async_engine(
-            config.url,
+            _normalize_url(config.url),
             echo=config.echo,
             pool_size=config.pool_size,
             max_overflow=config.max_overflow,
@@ -69,3 +69,15 @@ class SessionFactory:
 
 def create_session_factory(config: DatabaseConfig) -> SessionFactory:
     return SessionFactory(config)
+
+
+def _normalize_url(url: str) -> str:
+    """Accept platform-provided Postgres URLs.
+
+    Neon/Railway commonly expose `postgresql://...`; SQLAlchemy async needs
+    the psycopg driver token here, so normalize once at the adapter boundary.
+    Query parameters like `sslmode=require` are preserved.
+    """
+    if url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+psycopg://", 1)
+    return url
