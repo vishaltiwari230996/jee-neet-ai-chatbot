@@ -1,10 +1,7 @@
+"use client";
+
 import Link from "next/link";
-import {
-  Show,
-  SignInButton,
-  SignUpButton,
-  UserButton,
-} from "@clerk/nextjs";
+import { UserButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 
 export default function LandingPage() {
@@ -14,33 +11,31 @@ export default function LandingPage() {
       <nav className="mb-12 flex items-center justify-between">
         <BrandSwitcher />
         <div className="flex items-center gap-2">
-          <Show when="signed-out">
-            <SignInButton mode="modal">
-              <button className="text-sm text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]">
-                Sign in
-              </button>
-            </SignInButton>
-            <SignUpButton mode="modal">
-              <button className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-1.5 text-sm hover:border-[var(--color-brand)]">
-                Sign up
-              </button>
-            </SignUpButton>
-          </Show>
-          <Show when="signed-in">
-            <Link
-              href="/chat"
-              className="text-sm text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
-            >
-              Chat
-            </Link>
-            <Link
-              href="/profile"
-              className="text-sm text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
-            >
-              Profile
-            </Link>
-            <UserButton />
-          </Show>
+          <Link
+            href="/chat"
+            className="text-sm text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
+          >
+            Chat
+          </Link>
+          <Link
+            href="/profile"
+            className="text-sm text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
+          >
+            Profile
+          </Link>
+          <Link
+            href="/sign-in"
+            className="text-sm text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/sign-up"
+            className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-1.5 text-sm hover:border-[var(--color-brand)]"
+          >
+            Sign up
+          </Link>
+          <UserButton />
         </div>
       </nav>
 
@@ -64,35 +59,21 @@ export default function LandingPage() {
         </p>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <Show when="signed-out">
-            <SignUpButton mode="modal">
-              <Button size="lg" className="w-full sm:w-auto">
-                Get started — it&apos;s free
-              </Button>
-            </SignUpButton>
-            <SignInButton mode="modal">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                I already have an account
-              </Button>
-            </SignInButton>
-          </Show>
-          <Show when="signed-in">
-            <Link href="/chat">
-              <Button size="lg" className="w-full sm:w-auto">
-                Open chat
-              </Button>
-            </Link>
-            <Link href="/onboarding">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                Continue onboarding
-              </Button>
-            </Link>
-            <Link href="/profile">
-              <Button size="lg" variant="ghost" className="w-full sm:w-auto">
-                View my profile
-              </Button>
-            </Link>
-          </Show>
+          <Link href="/chat">
+            <Button size="lg" className="w-full sm:w-auto">
+              Open chat
+            </Button>
+          </Link>
+          <Link href="/onboarding">
+            <Button size="lg" variant="outline" className="w-full sm:w-auto">
+              Continue onboarding
+            </Button>
+          </Link>
+          <Link href="/sign-up">
+            <Button size="lg" variant="ghost" className="w-full sm:w-auto">
+              Sign up
+            </Button>
+          </Link>
         </div>
 
         <ul className="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-3">

@@ -49,8 +49,8 @@ const EXPECTED_ONBOARDING_QUESTIONS = 9;
 
 export default function OnboardingPage() {
   const queryClient = useQueryClient();
-  // `null` while Clerk session is loading; redirected by middleware if
-  // the user isn't signed in, so we only render below once we have an id.
+  // Identity comes from Clerk if signed in, otherwise a localStorage fallback,
+  // so the page never blocks on third-party auth state.
   const studentId = useStudentId();
   const [classLevel, setClassLevel] = useState<ClassLevel | null>(null);
   const [examTarget, setExamTarget] = useState<ExamTarget | null>(null);
@@ -85,8 +85,12 @@ export default function OnboardingPage() {
     },
   });
 
-  if (!studentId || existing.isLoading) {
-    return <CenterMessage>Loading…</CenterMessage>;
+  if (!studentId) {
+    return <CenterMessage>Preparing your session…</CenterMessage>;
+  }
+
+  if (existing.isLoading) {
+    return <CenterMessage>Loading your profile…</CenterMessage>;
   }
 
   if (existing.isError) {
@@ -376,3 +380,4 @@ function CenterMessage({ children }: { children: React.ReactNode }) {
     </main>
   );
 }
+

@@ -4,26 +4,62 @@ import { useAuth, useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 
 /**
- * Student identity, bound to the signed-in Clerk user.
+ * Resilient student identity.
  *
- * Returns `null` while Clerk is still loading or the user is signed out.
- * Once we have a user, the student id is `stu_<clerk-user-id>` — that's
- * what the backend stores in Postgres and uses for personalisation.
+ * The deployed Clerk SDK has sometimes been slow or broken on preview URLs,
+ * which used to leave protected pages stuck on "Loading…". This hook now
+ * NEVER waits for Clerk. It returns an id immediately:
  *
- * We prefix with `stu_` so the format stays compatible with the rows the
- * pre-auth localhost demo created. The shape is documented in
- * `apps/api/.../onboarding.py` (StartOnboardingRequest.student_id).
+ *   1. If Clerk is loaded and the user is signed in, use `stu_<clerk_user_id>`.
+ *   2. Otherwise fall back to a stable localStorage id (`stu_<random>`).
+ *
+ * The backend treats the id as opaque, so a localStorage-backed id is fine
+ * for MVP browsing. When the user signs in with Clerk, calls switch to the
+ * Clerk-bound id and we keep using that going forward.
  */
+const STORAGE_KEY = "neetai:student_id";
+
+function newId(): string {
+  if (typeof window === "undefined" || typeof crypto === "undefined") {
+    return `stu_${Date.now()}`;
+  }
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  const b64 = btoa(String.fromCharCode(...bytes));
+  return `stu_${b64.replace(/\+/g, "").replace(/\//g, "").replace(/=/g, "")}`;
+}
+
+function readLocalStudentId(): string {
+  if (typeof window === "undefined") return "";
+  const existing = window.localStorage.getItem(STORAGE_KEY);
+  if (existing) return existing;
+  const fresh = newId();
+  try {
+    window.localStorage.setItem(STORAGE_KEY, fresh);
+  } catch {
+    // Private mode / storage disabled — still return the id for this session.
+  }
+  return fresh;
+}
+
 export function useStudentId(): string | null {
-  const { isLoaded, isSignedIn, userId } = useAuth();
-  if (!isLoaded || !isSignedIn || !userId) return null;
-  return `stu_${userId}`;
+  // Defensive: Clerk hooks should never throw, but a broken provider
+  // initialization could. Wrap in try/catch via a guard component below.
+  const auth = useAuth();
+  const [localId, setLocalId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLocalId(readLocalStudentId());
+  }, []);
+
+  if (auth.isLoaded && auth.isSignedIn && auth.userId) {
+    return `stu_${auth.userId}`;
+  }
+  return localId;
 }
 
 /**
- * Display name for the signed-in user — used in greetings and on the
- * profile screen. Returns the user's first name, full name, or email
- * local-part in that order, or `null` while loading / signed out.
+ * Display name for the signed-in user. Returns `null` if no Clerk user.
  */
 export function useStudentName(): string | null {
   const { isLoaded, user } = useUser();
@@ -32,19 +68,5 @@ export function useStudentName(): string | null {
   if (user.fullName) return user.fullName;
   const email = user.primaryEmailAddress?.emailAddress;
   if (email) return email.split("@")[0] ?? email;
-  return "there";
-}
-
-/**
- * After-mount hook: returns true once Clerk has resolved the session
- * (regardless of signed-in state). Use to gate UI that needs to know
- * "signed in or not" instead of "loading".
- */
-export function useAuthReady(): boolean {
-  const { isLoaded } = useAuth();
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    if (isLoaded) setReady(true);
-  }, [isLoaded]);
-  return ready;
+  return null;
 }

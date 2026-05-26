@@ -1,3 +1,5 @@
+"use client";
+
 import { SignUp } from "@clerk/nextjs";
 import Link from "next/link";
 
@@ -10,7 +12,12 @@ export default function SignUpPage() {
       >
         ← Home
       </Link>
-      <SignUp signInUrl="/sign-in" />
+      <SignUp
+        routing="path"
+        path="/sign-up"
+        signInUrl="/sign-in"
+        forceRedirectUrl="/onboarding"
+      />
     </main>
   );
 }

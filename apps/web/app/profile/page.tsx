@@ -27,6 +27,10 @@ export default function ProfilePage() {
     },
   });
 
+  if (!studentId) {
+    return <CenterMessage>Preparing your session…</CenterMessage>;
+  }
+
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col px-5 py-10 sm:py-16">
       <div className="mb-6 flex items-center justify-between">
@@ -154,6 +158,14 @@ function Empty({ children }: { children: React.ReactNode }) {
     <Card className="text-center">
       <div className="text-sm text-[var(--color-fg-muted)]">{children}</div>
     </Card>
+  );
+}
+
+function CenterMessage({ children }: { children: React.ReactNode }) {
+  return (
+    <main className="mx-auto flex min-h-dvh max-w-md items-center justify-center px-6 text-center text-sm text-[var(--color-fg-muted)]">
+      {children}
+    </main>
   );
 }
 

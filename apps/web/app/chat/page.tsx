@@ -177,6 +177,10 @@ export default function ChatPage() {
 
   const noProfile = !profileQuery.isLoading && !profileQuery.data;
 
+  if (!studentId) {
+    return <FullPageMessage>Preparing your session…</FullPageMessage>;
+  }
+
   return (
     <main className="mx-auto flex h-dvh max-w-3xl flex-col px-4 sm:px-6">
       <header className="flex items-center justify-between border-b border-[var(--color-border)] py-4">
@@ -359,3 +363,12 @@ function ProfileMissingPrompt() {
     </Card>
   );
 }
+
+function FullPageMessage({ children }: { children: React.ReactNode }) {
+  return (
+    <main className="mx-auto flex min-h-dvh max-w-md items-center justify-center px-6 text-center text-sm text-[var(--color-fg-muted)]">
+      {children}
+    </main>
+  );
+}
+
