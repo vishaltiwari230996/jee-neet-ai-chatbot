@@ -71,6 +71,22 @@ export interface SubmitAnswerRequest {
   raw_answer: string;
 }
 
+export interface ProfileUpsertRequest {
+  student_id: string;
+  class_level: ClassLevel;
+  exam_target: ExamTarget;
+  language?: Language;
+  weak_subject?: string | null;
+  strong_subject?: string | null;
+  learning_style?: string | null;
+  mock_score_range?: string | null;
+  main_problem?: string | null;
+  mistake_pattern?: string | null;
+  emotional_state?: string | null;
+  revision_habit?: string | null;
+  study_hours_per_day?: number | null;
+}
+
 /**
  * Shape returned by the FastAPI error handlers in `apps/api/.../errors.py`.
  */

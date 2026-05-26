@@ -1,41 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
+/**
+ * Onboarding flow — questions live on the frontend.
+ *
+ * Step 1 (intake): pick class level + exam target.
+ * Step 2 (questions): walk through the hardcoded list filtered by exam.
+ * Step 3 (save): POST the consolidated profile to the backend, then go
+ *                to /chat.
+ *
+ * No backend question bank, no per-question round trips, no Clerk gates.
+ * If something breaks mid-flow, refresh and pick up from the same questions.
+ */
+
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
-import { ApiError, api } from "@/lib/api/client";
-import type {
-  ClassLevel,
-  ExamTarget,
-  OnboardingStateResponse,
-  QuestionPayload,
-} from "@/lib/api/types";
-import { useStudentId } from "@/lib/student";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup } from "@/components/ui/radio-group";
 import { TextInput } from "@/components/ui/text-input";
-
-/**
- * The onboarding flow has three steps:
- *
- *  1. `intake`   — pick class level + exam target. Required by the API to
- *                  start the flow. One screen.
- *  2. `questions`— the adaptive diagnostic loop. Each iteration shows the
- *                  question the API just sent back; submitting an answer
- *                  returns the next state.
- *  3. `complete` — the API has no more questions; we route to /profile.
- *
- * Everything is driven by `OnboardingStateResponse` from the server, so
- * refreshing the page mid-flow Just Works (we re-fetch `/state/{id}`).
- */
-type Phase = "intake" | "questions" | "complete";
+import { ApiError, api } from "@/lib/api/client";
+import type {
+  ClassLevel,
+  ExamTarget,
+  ProfileUpsertRequest,
+} from "@/lib/api/types";
+import {
+  type OnboardingQuestion,
+  questionsForExam,
+} from "@/lib/onboarding-questions";
+import { useStudentId } from "@/lib/student";
 
 const CLASS_LEVELS: ClassLevel[] = ["class_11", "class_12", "dropper"];
 const EXAM_TARGETS: ExamTarget[] = [
@@ -45,74 +42,39 @@ const EXAM_TARGETS: ExamTarget[] = [
   "jee_main_advanced",
 ];
 
-const EXPECTED_ONBOARDING_QUESTIONS = 9;
+interface Answers {
+  [field: string]: string | number | undefined;
+}
+
+type Phase = "intake" | "questions" | "saving" | "done" | "error";
 
 export default function OnboardingPage() {
-  const queryClient = useQueryClient();
-  // Identity comes from Clerk if signed in, otherwise a localStorage fallback,
-  // so the page never blocks on third-party auth state.
+  const router = useRouter();
   const studentId = useStudentId();
+
   const [classLevel, setClassLevel] = useState<ClassLevel | null>(null);
   const [examTarget, setExamTarget] = useState<ExamTarget | null>(null);
+  const [phase, setPhase] = useState<Phase>("intake");
+  const [questionIdx, setQuestionIdx] = useState(0);
+  const [answers, setAnswers] = useState<Answers>({});
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // If a previous run already started, resume it without forcing the user
-  // back to the intake screen.
-  const existing = useQuery<OnboardingStateResponse | null>({
-    queryKey: ["onboarding", studentId, "resume"],
-    enabled: !!studentId,
-    queryFn: async () => {
-      if (!studentId) return null;
-      try {
-        return await api.getOnboardingState(studentId);
-      } catch (err) {
-        if (err instanceof ApiError && err.status === 404) return null;
-        throw err;
-      }
-    },
-  });
-
-  const startMutation = useMutation({
-    mutationFn: api.startOnboarding,
-    onSuccess: (data) => {
-      queryClient.setQueryData(["onboarding", studentId, "resume"], data);
-    },
-  });
-
-  const answerMutation = useMutation({
-    mutationFn: api.submitAnswer,
-    onSuccess: (data) => {
-      queryClient.setQueryData(["onboarding", studentId, "resume"], data);
-    },
-  });
+  const questions = useMemo<OnboardingQuestion[]>(
+    () => (examTarget ? questionsForExam(examTarget) : []),
+    [examTarget],
+  );
 
   if (!studentId) {
-    return <CenterMessage>Preparing your session…</CenterMessage>;
+    return <Center>Preparing your session…</Center>;
   }
 
-  if (existing.isLoading) {
-    return <CenterMessage>Loading your profile…</CenterMessage>;
+  if (phase === "saving") {
+    return <Center>Saving your profile…</Center>;
   }
 
-  if (existing.isError) {
-    return (
-      <CenterMessage>
-        <p className="text-[var(--color-danger)]">
-          Couldn&apos;t reach the API. Is the backend running on port 8000?
-        </p>
-      </CenterMessage>
-    );
+  if (phase === "done") {
+    return <Center>All set. Opening chat…</Center>;
   }
-
-  const state: OnboardingStateResponse | null = existing.data ?? null;
-  const mutationError = (startMutation.error ?? answerMutation.error) as
-    | Error
-    | null;
-
-  const phase: Phase = !state
-    ? "intake"
-    : state.status === "complete"
-      ? "complete"
-      : "questions";
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col px-5 py-10 sm:py-16">
@@ -124,47 +86,131 @@ export default function OnboardingPage() {
           examTarget={examTarget}
           onClassLevel={setClassLevel}
           onExamTarget={setExamTarget}
-          submitting={startMutation.isPending}
-          onSubmit={() => {
-            if (!classLevel || !examTarget || !studentId) return;
-            startMutation.mutate({
-              student_id: studentId,
-              class_level: classLevel,
-              exam_target: examTarget,
-            });
+          onContinue={() => {
+            if (!classLevel || !examTarget) return;
+            setPhase("questions");
+            setQuestionIdx(0);
+            setAnswers({});
           }}
         />
       ) : null}
 
-      {phase === "questions" && state ? (
+      {phase === "questions" && classLevel && examTarget ? (
         <QuestionStep
-          state={state}
-          submitting={answerMutation.isPending}
-          onAnswer={(answer) => {
-            if (!state.next_question || !studentId) return;
-            answerMutation.mutate({
-              student_id: studentId,
-              question_id: state.next_question.question_id,
-              raw_answer: answer,
+          question={questions[questionIdx]}
+          index={questionIdx}
+          total={questions.length}
+          onAnswer={(value) => {
+            const current = questions[questionIdx];
+            if (!current) return;
+            const nextAnswers: Answers = {
+              ...answers,
+              [current.field]: value,
+            };
+            setAnswers(nextAnswers);
+
+            if (questionIdx + 1 < questions.length) {
+              setQuestionIdx(questionIdx + 1);
+              return;
+            }
+
+            void submitProfile({
+              studentId,
+              classLevel,
+              examTarget,
+              answers: nextAnswers,
+              setPhase,
+              setErrorMessage,
+              router,
             });
+          }}
+          onBack={() => {
+            if (questionIdx === 0) {
+              setPhase("intake");
+              return;
+            }
+            setQuestionIdx(questionIdx - 1);
           }}
         />
       ) : null}
 
-      {phase === "complete" ? <CompleteStep /> : null}
-
-      {mutationError ? (
-        <p className="mt-4 text-sm text-[var(--color-danger)]">
-          {mutationError instanceof ApiError
-            ? mutationError.message
-            : "Something went wrong. Try again."}
-        </p>
+      {phase === "error" ? (
+        <Card className="text-center">
+          <h2 className="text-lg font-semibold">Could not save your profile</h2>
+          <p className="mt-2 text-sm text-[var(--color-danger)]">
+            {errorMessage ?? "Unknown error"}
+          </p>
+          <div className="mt-4 flex justify-center gap-3">
+            <Button
+              onClick={() => {
+                setPhase("questions");
+                setErrorMessage(null);
+              }}
+            >
+              Try again
+            </Button>
+            <Link href="/">
+              <Button variant="outline">Home</Button>
+            </Link>
+          </div>
+        </Card>
       ) : null}
     </main>
   );
 }
 
-/* -------------------------------------------------------------------------- */
+interface SubmitArgs {
+  studentId: string;
+  classLevel: ClassLevel;
+  examTarget: ExamTarget;
+  answers: Answers;
+  setPhase: (p: Phase) => void;
+  setErrorMessage: (m: string | null) => void;
+  router: ReturnType<typeof useRouter>;
+}
+
+async function submitProfile(args: SubmitArgs) {
+  const { studentId, classLevel, examTarget, answers, setPhase, setErrorMessage, router } = args;
+  setPhase("saving");
+  try {
+    const body: ProfileUpsertRequest = {
+      student_id: studentId,
+      class_level: classLevel,
+      exam_target: examTarget,
+      weak_subject: optionalString(answers.weak_subject),
+      strong_subject: optionalString(answers.strong_subject),
+      learning_style: optionalString(answers.learning_style),
+      mock_score_range: optionalString(answers.mock_score_range),
+      main_problem: optionalString(answers.main_problem),
+      mistake_pattern: optionalString(answers.mistake_pattern),
+      emotional_state: optionalString(answers.emotional_state),
+      revision_habit: optionalString(answers.revision_habit),
+      study_hours_per_day: optionalNumber(answers.study_hours_per_day),
+    };
+    await api.upsertProfile(body);
+    setPhase("done");
+    router.push("/chat");
+  } catch (err) {
+    setErrorMessage(
+      err instanceof ApiError
+        ? err.message
+        : "Something went wrong. Please try again.",
+    );
+    setPhase("error");
+  }
+}
+
+function optionalString(value: string | number | undefined): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  const text = String(value).trim();
+  return text.length > 0 ? text : undefined;
+}
+
+function optionalNumber(value: string | number | undefined): number | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
 
 function Header() {
   return (
@@ -185,15 +231,13 @@ function IntakeStep({
   examTarget,
   onClassLevel,
   onExamTarget,
-  submitting,
-  onSubmit,
+  onContinue,
 }: {
   classLevel: ClassLevel | null;
   examTarget: ExamTarget | null;
   onClassLevel: (v: ClassLevel) => void;
   onExamTarget: (v: ExamTarget) => void;
-  submitting: boolean;
-  onSubmit: () => void;
+  onContinue: () => void;
 }) {
   const ready = classLevel !== null && examTarget !== null;
   return (
@@ -227,10 +271,10 @@ function IntakeStep({
         <Button
           size="lg"
           className="w-full"
-          disabled={!ready || submitting}
-          onClick={onSubmit}
+          disabled={!ready}
+          onClick={onContinue}
         >
-          {submitting ? "Starting…" : "Continue"}
+          Continue
         </Button>
       </div>
     </Card>
@@ -238,121 +282,99 @@ function IntakeStep({
 }
 
 function QuestionStep({
-  state,
-  submitting,
+  question,
+  index,
+  total,
   onAnswer,
+  onBack,
 }: {
-  state: OnboardingStateResponse;
-  submitting: boolean;
-  onAnswer: (raw: string) => void;
+  question: OnboardingQuestion | undefined;
+  index: number;
+  total: number;
+  onAnswer: (value: string | number) => void;
+  onBack: () => void;
 }) {
-  const q = state.next_question;
-  if (!q) return null;
+  const [choice, setChoice] = useState<string | null>(null);
+  const [text, setText] = useState("");
+  const [num, setNum] = useState("");
 
-  // The backend raises profile confidence by 0.10 per diagnostic answer.
-  // The current CSV has nine post-intake questions, so this gives students
-  // a stable progress bar without exposing internal field names.
-  const answered = Math.min(
-    EXPECTED_ONBOARDING_QUESTIONS,
-    Math.round(state.profile.profile_confidence * 10),
-  );
-  const progress = Math.min(1, answered / EXPECTED_ONBOARDING_QUESTIONS);
+  useEffect(() => {
+    setChoice(null);
+    setText("");
+    setNum("");
+  }, [question?.id]);
+
+  if (!question) {
+    return (
+      <Card className="text-center">
+        <p className="text-sm text-[var(--color-fg-muted)]">
+          No questions configured for this exam.
+        </p>
+      </Card>
+    );
+  }
+
+  const canSubmit =
+    question.type === "single_choice"
+      ? choice !== null
+      : question.type === "number"
+        ? num.trim().length > 0
+        : text.trim().length > 0;
 
   return (
     <Card>
       <Progress
-        value={progress}
-        label={`Step ${Math.min(answered + 1, EXPECTED_ONBOARDING_QUESTIONS)} of ${EXPECTED_ONBOARDING_QUESTIONS}`}
+        value={(index + 1) / total}
+        label={`Step ${index + 1} of ${total}`}
       />
 
-      <h2 className="mt-6 text-[17px] font-medium leading-7">{q.text}</h2>
-      <p className="mt-1 text-xs uppercase tracking-wider text-[var(--color-fg-muted)]">
-        {q.category.replace(/_/g, " ")}
-      </p>
+      <h2 className="mt-6 text-[17px] font-medium leading-7">
+        {question.text}
+      </h2>
 
       <div className="mt-6">
-        <AnswerInput question={q} submitting={submitting} onSubmit={onAnswer} />
+        {question.type === "single_choice" ? (
+          <RadioGroup
+            name={question.id}
+            options={question.options ?? []}
+            value={choice}
+            onChange={setChoice}
+          />
+        ) : question.type === "number" ? (
+          <TextInput
+            value={num}
+            onChange={(e) =>
+              setNum(e.target.value.replace(/[^0-9.]/g, ""))
+            }
+            placeholder="e.g. 5"
+          />
+        ) : (
+          <TextInput
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Type your answer…"
+          />
+        )}
       </div>
-    </Card>
-  );
-}
 
-function AnswerInput({
-  question,
-  submitting,
-  onSubmit,
-}: {
-  question: QuestionPayload;
-  submitting: boolean;
-  onSubmit: (raw: string) => void;
-}) {
-  const [choice, setChoice] = useState<string | null>(null);
-  const [text, setText] = useState("");
-
-  // Reset local state whenever the question changes — otherwise the
-  // previous answer leaks into the next screen.
-  useEffect(() => {
-    setChoice(null);
-    setText("");
-  }, [question.question_id]);
-
-  const isChoice = question.options.length > 0;
-  const canSubmit = isChoice ? choice !== null : text.trim().length > 0;
-
-  return (
-    <div className="space-y-5">
-      {isChoice ? (
-        <RadioGroup
-          name={question.question_id}
-          options={question.options}
-          value={choice}
-          onChange={setChoice}
-          disabled={submitting}
-        />
-      ) : (
-        <TextInput
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Type your answer…"
-          disabled={submitting}
-        />
-      )}
-
-      <Button
-        size="lg"
-        className="w-full"
-        disabled={!canSubmit || submitting}
-        onClick={() => onSubmit(isChoice ? (choice ?? "") : text.trim())}
-      >
-        {submitting ? "Saving…" : "Next"}
-      </Button>
-    </div>
-  );
-}
-
-function CompleteStep() {
-  return (
-    <Card>
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-brand)]/15 text-2xl">
-        ✓
-      </div>
-      <h2 className="mt-5 text-center text-xl font-semibold">
-        Profile is ready
-      </h2>
-      <p className="mt-2 text-center text-sm text-[var(--color-fg-muted)]">
-        We learned enough to start tutoring you the way that works.
-      </p>
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-        <Link href="/chat">
-          <Button size="lg" className="w-full sm:w-auto">
-            Start chatting →
-          </Button>
-        </Link>
-        <Link href="/profile">
-          <Button size="lg" variant="outline" className="w-full sm:w-auto">
-            See my profile
-          </Button>
-        </Link>
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
+        <Button variant="outline" onClick={onBack}>
+          Back
+        </Button>
+        <Button
+          disabled={!canSubmit}
+          onClick={() => {
+            if (question.type === "single_choice" && choice !== null) {
+              onAnswer(choice);
+            } else if (question.type === "number" && num.trim()) {
+              onAnswer(Number(num));
+            } else if (text.trim()) {
+              onAnswer(text.trim());
+            }
+          }}
+        >
+          {index + 1 === total ? "Finish" : "Next"}
+        </Button>
       </div>
     </Card>
   );
@@ -373,11 +395,10 @@ function FieldGroup({
   );
 }
 
-function CenterMessage({ children }: { children: React.ReactNode }) {
+function Center({ children }: { children: React.ReactNode }) {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md items-center justify-center px-6 text-center text-sm text-[var(--color-fg-muted)]">
       {children}
     </main>
   );
 }
-

@@ -17,6 +17,7 @@ import type {
   ApiErrorBody,
   OnboardingStateResponse,
   ProfileSummary,
+  ProfileUpsertRequest,
   StartOnboardingRequest,
   SubmitAnswerRequest,
 } from "./types";
@@ -81,6 +82,9 @@ export const api = {
       "GET",
       `/api/v1/profile/${encodeURIComponent(studentId)}`,
     ),
+
+  upsertProfile: (body: ProfileUpsertRequest) =>
+    request<ProfileSummary>("POST", "/api/v1/profile/upsert", body),
 
   health: () => request<{ status: string }>("GET", "/health/live"),
 };
